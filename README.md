@@ -1,4 +1,4 @@
-# West Asia Conflict Tracker
+# West Asia Strike Tracker
 
 A live, interactive tracker of missile, drone, and airstrike events across West Asia (2024–2026), with color-coded arc trajectories on a dark map, 12-hour auto-refreshing RSS news feed, and timeline controls.
 
