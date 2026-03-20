@@ -1,0 +1,41 @@
+name: Auto-Update Strike Tracker
+
+on:
+  schedule:
+    # Runs every 12 hours: 00:00 and 12:00 UTC
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+    # Allows manual triggering from GitHub Actions tab
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to commit + push index.html
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run event updater
+        run: python update_events.py
+
+      - name: Commit and push if events were added
+        run: |
+          git config user.name  "Strike Tracker Bot"
+          git config user.email "strike-tracker-bot@noreply.github.com"
+          if ! git diff --quiet index.html; then
+            COUNT=$(git diff index.html | grep -c "^+.*id:'" || true)
+            git add index.html
+            git commit -m "auto: add ~${COUNT} new events [$(date -u +'%Y-%m-%d %H:%M UTC')]"
+            git push
+            echo "✓ Pushed updated index.html"
+          else
+            echo "✓ No changes — nothing to push"
+          fi
