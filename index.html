@@ -203,6 +203,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .tl-date2{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:1px}
 .tl-title{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--white);line-height:1.3;margin-bottom:2px}
 .tl-ctx{font-family:'DM Sans',sans-serif;font-size:10px;color:var(--text);line-height:1.4}
+/* TICKER */
+.ticker-wrap{height:34px;background:#eeece5;display:flex;align-items:center;overflow:hidden;flex-shrink:0;border-bottom:1px solid #d8d5cc}
+.ticker-label{background:#c44536;color:#fff;font-family:'DM Sans',sans-serif;font-size:9px;font-weight:700;padding:0 10px;height:22px;display:flex;align-items:center;flex-shrink:0;letter-spacing:.03em;border-radius:8px;margin-left:8px}
+.ticker-day{background:#c44536;color:#fff;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;padding:0 10px;height:22px;display:flex;align-items:center;flex-shrink:0;border-radius:8px;margin-left:8px}
+.ticker-sep{width:1px;height:14px;background:#d8d5cc;margin:0 8px;flex-shrink:0}
+.ticker-track{flex:1;overflow:hidden;position:relative;height:100%}
+.ticker-content{display:flex;align-items:center;gap:28px;height:100%;white-space:nowrap;padding:0 16px;font-family:'DM Sans',sans-serif;font-size:11px;color:#504b44;animation:tickScroll 30s linear infinite}
+.ticker-content .tk-date{color:#c44536;font-weight:700;margin-right:4px}
+.ticker-content .tk-sep{color:#d8d5cc}
+@keyframes tickScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* SCROLL ANIMATIONS */
+.anim-in{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.anim-in.visible{opacity:1;transform:translateY(0)}
+.bar-anim{transition:width .8s ease-out}
+.count-up{transition:none}
 /* POPUP */
 .popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
 .popup{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 26px;max-width:460px;width:90%;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.12)}
@@ -252,6 +267,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
     <button class="btn" onclick="fetchNews()">↻ Refresh</button>
     <span class="clock" id="clk"></span>
   </div>
+</div>
+<!-- TICKER BANNER -->
+<div class="ticker-wrap">
+  <div class="ticker-day" id="warDay">DAY —</div>
+  <div class="ticker-sep"></div>
+  <div class="ticker-label">LATEST</div>
+  <div class="ticker-sep"></div>
+  <div class="ticker-track"><div class="ticker-content" id="tickerContent"></div></div>
 </div>
 <div class="main">
   <!-- LEFT PANEL -->
@@ -459,98 +482,6 @@ const E=[
 {id:'82',d:'2026-03-19',t:'Iran fires cluster bombs at central Israel — Thai worker killed',c:'ballistic',ty:'Cluster munition ballistic missile',dt:'Ballistic with cluster warhead',q:'6+ waves',fr:'Iran',fc:[34.0,47.0],to:'Adanim, Jaljulia, Sharon area, Israel',tc:[32.2,34.9],tt:'Urban / residential',ic:'residential',s:'partial',n:'Cluster bomblets struck agricultural community of Adanim — Thai worker killed. Another hit Arab town of Jaljulia. Elderly man injured in Tel Aviv apartment.',sr:'CBS News / AP / Reuters',oc:'Iran',tcc:'Israel'},
 {id:'83',d:'2026-03-20',t:'Saudi Arabia intercepts missile over Al Jouf region',c:'ballistic',ty:'Ballistic Missile',dt:'MRBM',q:'1',fr:'Iran',fc:[34.0,47.0],to:'Al Jouf region, northern Saudi Arabia',tc:[29.8,40.1],tt:'Military / airspace',ic:'military',s:'intercepted',n:'Saudi air defenses intercepted. Saudi Arabia warned it "reserves the right to take military action" against Iran. Joint statement by 12 Arab/Islamic foreign ministers called for Iran to halt attacks.',sr:'Wikipedia / Saudi MoD / Reuters',oc:'Iran',tcc:'Saudi Arabia'},
 {id:'84',d:'2026-03-19',t:'UAE intercepts 7 missiles + 15 drones from Iran',c:'ballistic',ty:'Ballistic Missiles + Drones',dt:'MRBM + Shahed',q:'22 total',fr:'Iran',fc:[34.0,47.0],to:'UAE military and civilian areas',tc:[24.5,54.5],tt:'Military / civilian',ic:'military',s:'intercepted',n:'UAE air defenses intercepted all. Iranian projectile struck near Australian military base — small fire, no injuries. Part of Iranian energy retaliation campaign.',sr:'UAE MoD / CNN / ABC Australia',oc:'Iran',tcc:'UAE'},
-
-  {id:'85',d:'2026-03-19',t:'US greenlights over $16B in ’emergency’ radar and missile sales to Middle East',
-   c:'missile',ty:'Missile',dt:'Auto-detected — Breaking Defense',q:'1+',
-   fr:'US',fc:[38.9,-77.0],to:'Kuwait',tc:[29.3,47.5],
-   tt:'Air Defense',s:'intercepted',
-   n:'The proposed deals include $8 billion-worth of radars for Kuwait and $8.4 billion in various air defense equipment for the United Arab Emirates.',
-   sr:'Breaking Defense',url:'https://breakingdefense.com/2026/03/us-greenlights-over-16b-in-emergency-radar-and-missile-sales-to-middle-east/',oc:'US',tcc:'Kuwait'},
-  {id:'86',d:'2026-03-20',t:'Iranian missile attacks damage Rehovot homes; IDF reveals it killed Basij intel chief',
-   c:'missile',ty:'Missile',dt:'Auto-detected — Times of Israel',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Military',s:'intercepted',
-   n:'Two missiles fired by Iran had cluster warheads, causing mostly light injuries; IRGC spokesman denies PM\'s claim on destroyed missile production capacity, is killed by the time he gets quoted The post Iranian missile attacks damage Rehovot homes; IDF reveals it killed Basij intel chief appeared first on The Times of Israel.',
-   sr:'Times of Israel',url:'https://www.timesofisrael.com/iranian-missile-attacks-damage-rehovot-homes-idf-reveals-it-killed-basij-intel-chief/',oc:'Iran',tcc:'Israel'},
-  {id:'87',d:'2026-03-20',t:'Iron Dome reservist soldier indicted for spying for Iran',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — Times of Israel',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Jerusalem',tc:[31.77,35.22],
-   tt:'Air Defense',s:'partial',
-   n:'Jerusalem resident Raz Cohen provided information on workings of interception system, locations of batteries and IAF bases to Iranian handler in return for some $1,000 in crypto The post Iron Dome reservist soldier indicted for spying for Iran appeared first on The Times of Israel.',
-   sr:'Times of Israel',url:'https://www.timesofisrael.com/iron-dome-reservist-soldier-indicted-for-spying-for-iran/',oc:'Iran',tcc:'Israel'},
-  {id:'88',d:'2026-03-19',t:'Netanyahu says Israel \'acted alone\' in attack on Iranian gas field',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — BBC World',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Unknown',s:'hit',
-   n:'Speaking at a news conference, the Israeli leader said Trump had requested that there be no further such attacks.',
-   sr:'BBC World',url:'https://www.bbc.com/news/articles/c2k3jgy9vq3o?at_medium=RSS&at_campaign=rss',oc:'Iran',tcc:'Israel'},
-  {id:'89',d:'2026-03-20',t:'China has been preparing for a global energy crisis for years. It is paying off now',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — The Guardian',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Strait of Hormuz',tc:[26.57,56.25],
-   tt:'Unknown',s:'hit',
-   n:'As other Asian economies race to conserve energy, China has huge reserves of oil and gas as well as alternative energy sources like wind and solarMiddle East crisis – live updatesXi Jinping has been preparing for a crisis like this for years. China must secure its energy supply “in its own hands”, its president was reported to have said during a visit to one of its vast oilfields in 2021.The US-Is',
-   sr:'The Guardian',url:'https://www.theguardian.com/world/2026/mar/20/china-oil-reserves-global-energy-crisis',oc:'Iran',tcc:'Red Sea'},
-  {id:'90',d:'2026-03-19',t:'Iran says it will show ‘zero restraint’ if energy infrastructure is targeted again',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — The Guardian',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Energy infrastructure',s:'hit',
-   n:'Foreign minister issues warning after Israeli attack on South Pars gasfield and as Qatar reels from retaliatory strike‘Doomsday scenario’: a visual guide to the oil and gas site attacks in the Middle EastMiddle East crisis – live updatesIran said on Thursday it would show “zero restraint” if its energy infrastructure was targeted again as Qatar revealed that almost a fifth of its liquefied natural',
-   sr:'The Guardian',url:'https://www.theguardian.com/world/2026/mar/19/iran-says-it-will-show-zero-restraint-if-energy-infrastructure-is-targeted-again',oc:'Iran',tcc:'Israel'},
-  {id:'91',d:'2026-03-20',t:'Tehran meeting struck by Israel likely tied to Iran’s atomic bomb plans',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — Iran International',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Nuclear facilities',s:'hit',
-   n:'A meeting of senior Iranian officials that was hit by an Israeli airstrike on February 28 may have been linked to the Islamic Republic’s final deliberations over building a nuclear weapon.',
-   sr:'Iran International',url:'https://www.iranintl.com/en/202603173093',oc:'Iran',tcc:'Israel'},
-  {id:'92',d:'2026-03-18',t:'Israel energy strikes set off Iran-Qatar confrontation',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — Iran International',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Persian Gulf',tc:[26.5,52.0],
-   tt:'Energy infrastructure',s:'hit',
-   n:'Iran and Qatar moved into open confrontation on Wednesday after an Israeli strike on Iran’s energy infrastructure set off a chain of retaliation across the Persian Gulf, pulling new actors into the conflict.',
-   sr:'Iran International',url:'https://www.iranintl.com/en/202603181481',oc:'Iran',tcc:'Red Sea'},
-
-  {id:'93',d:'2026-03-20',t:'Sri Lanka says it denied US request to land two aircraft at Mattala airport',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — Al Jazeera',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Airport / Military',s:'hit',
-   n:'President Anura Kumara Dissanayake says request made on February 26, two days before US and Israel launched war on Iran.',
-   sr:'Al Jazeera',url:'https://www.aljazeera.com/news/2026/3/20/sri-lanka-says-it-denied-us-request-to-land-two-aircraft-at-mattala-airport?traffic_source=rss',oc:'Iran',tcc:'Israel'},
-  {id:'94',d:'2026-03-20',t:'Explosion hits Jerusalem’s Old City after Iran missile alert',
-   c:'missile',ty:'Missile',dt:'Auto-detected — Al Jazeera',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Jerusalem',tc:[31.77,35.22],
-   tt:'Unknown',s:'hit',
-   n:'An explosion struck Jerusalem’s Old City seconds after sirens warned of an incoming Iranian missile.',
-   sr:'Al Jazeera',url:'https://www.aljazeera.com/video/newsfeed/2026/3/20/explosion-hits-jerusalems-old-city-after-iran-missile-alert?traffic_source=rss',oc:'Iran',tcc:'Israel'},
-  {id:'95',d:'2026-03-21',t:'Iran fires ballistic missiles at US-UK Diego Garcia military base, does not hit it — report',
-   c:'drone',ty:'Attack Drone',dt:'Auto-detected — Times of Israel',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Saudi Arabia',tc:[24.0,45.0],
-   tt:'Military',s:'intercepted',
-   n:'IDF announces strikes on regime targets in Tehran after Iran fires missiles at Israel early Saturday * Saudi Arabia says it intercepted at least 20 Iranian drones in east of country The post Iran fires ballistic missiles at US-UK Diego Garcia military base, does not hit it — report appeared first on The Times of Israel.',
-   sr:'Times of Israel',url:'https://www.timesofisrael.com/liveblog-march-21-2026/',oc:'Iran',tcc:'Saudi Arabia'},
-  {id:'96',d:'2026-03-20',t:'UK okays US use of its bases to strike Iranian threats to shipping in Strait of Hormuz',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — Times of Israel',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Strait of Hormuz',tc:[26.57,56.25],
-   tt:'Commercial shipping',s:'hit',
-   n:'Britain authorizes American military to launch operations from UK aimed at \'degrading\' Iran\'s capabilities to hit ships, after Trump criticizes Starmer for not doing more to help The post UK okays US use of its bases to strike Iranian threats to shipping in Strait of Hormuz appeared first on The Times of Israel.',
-   sr:'Times of Israel',url:'https://www.timesofisrael.com/uk-okays-us-use-of-its-bases-to-strike-iranian-threats-to-shipping-in-strait-of-hormuz/',oc:'Iran',tcc:'Red Sea'},
-  {id:'97',d:'2026-03-20',t:'Iranian strikes on bases used by US caused $800m in damage, new analysis shows',
-   c:'missile',ty:'Projectile',dt:'Auto-detected — BBC World',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Military',s:'hit',
-   n:'Much of the damage was caused in initial retaliatory strikes by Iran in the week after the US and Israel launched its operation.',
-   sr:'BBC World',url:'https://www.bbc.com/news/articles/cddq7j48p35o?at_medium=RSS&at_campaign=rss',oc:'Iran',tcc:'Israel'},
-  {id:'98',d:'2026-03-21',t:'Middle East crisis live: Trump considering ‘winding down’ war as US eases sanctions on Iranian oil; Israel launches reta',
-   c:'drone',ty:'Attack Drone',dt:'Auto-detected — The Guardian',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Commercial shipping',s:'intercepted',
-   n:'Move to allow shipments already at sea comes amid a supply crisis and after US president says he does not ‘want to do a ceasefire’; IDF says it is attacking regime targets in Tehran after missiles fired at Israel from IranUS to send three more warships and thousands more troops, reports sayHow the Iran war has sent shocks rippling across the globeSaudi Arabia has said it is continuing to intercept',
-   sr:'The Guardian',url:'https://www.theguardian.com/world/live/2026/mar/21/middle-east-crisis-live-iran-war-trump-eases-oil-sanctions-israel-strikes',oc:'Iran',tcc:'Israel'},
-  {id:'99',d:'2026-03-21',t:'Israel launches fresh strikes on Tehran and Beirut - as it happened',
-   c:'drone',ty:'Attack Drone',dt:'Auto-detected — The Guardian',q:'1+',
-   fr:'Iran',fc:[32.4,53.7],to:'Israel',tc:[31.5,34.8],
-   tt:'Unknown',s:'hit',
-   n:'This blog is now closed – our live coverage of the US-Israel war on Iran continues in a new blog hereKuwait’s state oil firm KPC said its Mina Al-Ahmadi refinery was hit by multiple drone attacks early on Friday, causing a fire in some units, with no initial casualties reported, the state news agency said.Firefighters responded immediately, with several units shut down as a precaution to ensure wo',
-   sr:'The Guardian',url:'https://www.theguardian.com/world/live/2026/mar/20/iran-war-live-updates-oil-prices-israel-netanyahu-ground-component-us-tensions-hormuz',oc:'Iran',tcc:'Israel'},
 ];
 
 // ═══════════════════════════════════════════════════
@@ -774,13 +705,13 @@ function showDetail(id){
     h+='<div class="src-list">';
     for(var i=0;i<srcs.length;i++){
       var s=srcs[i].trim();if(!s)continue;
-      var q=encodeURIComponent(e.t.substring(0,50)+' '+s);
-      h+='<a class="src-link" href="https://news.google.com/search?q='+q+'" target="_blank" rel="noopener">'+s+' ↗</a>';
+      var url=srcUrl(s,e.t);
+      h+='<a class="src-link" href="'+url+'" target="_blank" rel="noopener">'+s+' ↗</a>';
     }
     h+='</div>';
   }
-  var fq=encodeURIComponent(e.t.substring(0,70));
-  h+='<a class="src-all" href="https://news.google.com/search?q='+fq+'" target="_blank" rel="noopener">Search all coverage ↗</a>';
+  var shortQ=encodeURIComponent(e.t.replace(/[—–\-]/g,' ').split(/\s+/).slice(0,5).join(' '));
+  h+='<a class="src-all" href="https://www.google.com/search?q='+shortQ+'" target="_blank" rel="noopener">Search all coverage ↗</a>';
   h+='</div></div>';
   document.getElementById('dp').innerHTML=h;
 }
@@ -949,6 +880,94 @@ function buildTimeline(){
 }
 
 // ═══════════════════════════════════════════════════
+// TICKER — auto-built from 5 most recent events
+function buildTicker(){
+  // Day counter — Feb 28 2026 = Day 1
+  var warStart=new Date('2026-02-28T00:00:00Z');
+  var dayNum=Math.floor((Date.now()-warStart.getTime())/86400000)+1;
+  document.getElementById('warDay').textContent='DAY '+dayNum;
+  // Recent events
+  var recent=E.slice().sort(function(a,b){return b.d.localeCompare(a.d)}).slice(0,6);
+  var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var items=recent.map(function(e){
+    var p=e.d.split('-');var lbl=parseInt(p[2])+' '+months[parseInt(p[1])];
+    return'<span><span class="tk-date">'+lbl.toUpperCase()+'</span> '+e.t+'</span><span class="tk-sep">|</span>';
+  }).join('');
+  document.getElementById('tickerContent').innerHTML=items+items;
+}
+
+// SCROLL ANIMATIONS — IntersectionObserver
+function initScrollAnims(){
+  var els=document.querySelectorAll('.ac-panel,.ac-stat,.tl-entry');
+  els.forEach(function(el){el.classList.add('anim-in')});
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('visible');obs.unobserve(en.target)}});
+  },{threshold:0.15});
+  els.forEach(function(el){obs.observe(el)});
+}
+
+// COUNTER ANIMATION
+function animateCounters(){
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var el=en.target;
+        var final=parseInt(el.textContent)||0;
+        if(final<=0||el.dataset.animated)return;
+        el.dataset.animated='1';
+        var start=0,dur=800,t0=performance.now();
+        function step(ts){
+          var p=Math.min((ts-t0)/dur,1);
+          var ease=1-Math.pow(1-p,3);
+          el.textContent=Math.round(start+ease*(final-start));
+          if(p<1)requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+        obs.unobserve(el);
+      }
+    });
+  },{threshold:0.5});
+  setTimeout(function(){
+    document.querySelectorAll('.ac-stat-v').forEach(function(el){
+      var v=parseInt(el.textContent);
+      if(v>0)obs.observe(el);
+    });
+  },500);
+}
+
+// SOURCE URL MAP — outlet-specific search pages
+var SRC_URLS={
+  'Reuters':'https://www.reuters.com/search/news?query=',
+  'Al Jazeera':'https://www.aljazeera.com/search?q=',
+  'BBC':'https://www.bbc.co.uk/search?q=',
+  'CNN':'https://edition.cnn.com/search?q=',
+  'AP':'https://apnews.com/search?q=',
+  'NPR':'https://www.npr.org/search?query=',
+  'IDF':'https://www.google.com/search?q=IDF+',
+  'CENTCOM':'https://www.google.com/search?q=CENTCOM+',
+  'Wikipedia':'https://en.wikipedia.org/w/index.php?search=',
+  'Times of Israel':'https://www.timesofisrael.com/?s=',
+  'ToI':'https://www.timesofisrael.com/?s=',
+  'Breaking Defense':'https://breakingdefense.com/?s=',
+  'War Zone':'https://www.twz.com/?s=',
+  'CBS News':'https://www.cbsnews.com/search?q=',
+  'JPost':'https://www.jpost.com/tags/',
+  'i24 News':'https://www.google.com/search?q=i24news+',
+  'Gulf News':'https://gulfnews.com/search?q=',
+  'UKMTO':'https://www.google.com/search?q=UKMTO+',
+  'Iran International':'https://www.iranintl.com/en/search?q=',
+  'Euronews':'https://www.euronews.com/search?query=',
+  'CNBC':'https://www.cnbc.com/search/?query='
+};
+function srcUrl(sourceName, eventTitle){
+  var short=eventTitle.replace(/[—–\-]/g,' ').split(/\s+/).slice(0,5).join(' ');
+  var q=encodeURIComponent(short);
+  for(var key in SRC_URLS){
+    if(sourceName.indexOf(key)>=0)return SRC_URLS[key]+q;
+  }
+  return'https://www.google.com/search?q='+encodeURIComponent(sourceName+' '+short);
+}
+
 // INIT
 // ═══════════════════════════════════════════════════
 (function(){
@@ -957,9 +976,12 @@ function buildTimeline(){
   buildCBtns();
   go();
   buildTimeline();
-  document.getElementById('pill').style.color='var(--int)';document.getElementById('pill').style.borderColor='rgba(78,203,141,.25)';
+  buildTicker();
+  document.getElementById('pill').style.color='var(--int)';document.getElementById('pill').style.borderColor='rgba(26,127,98,.25)';
   document.getElementById('pill').textContent='● '+E.length+' EVENTS';
   if(!loadCache())setTimeout(fetchNews,1500);else setTimeout(fetchNews,4000);
+  setTimeout(initScrollAnims,300);
+  setTimeout(animateCounters,600);
 })();
 </script>
 </body>
