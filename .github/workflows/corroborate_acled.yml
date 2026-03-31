@@ -1,0 +1,42 @@
+name: ACLED Corroboration
+
+on:
+  push:
+    paths:
+      - 'data/*.xlsx'
+  workflow_dispatch:
+
+jobs:
+  corroborate:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas openpyxl
+
+      - name: Run ACLED corroboration
+        run: python corroborate_acled.py
+
+      - name: Commit updated index.html
+        run: |
+          git config user.name "Strike Tracker Bot"
+          git config user.email "strike-tracker-bot@noreply.github.com"
+          if ! git diff --quiet index.html; then
+            git add index.html
+            git commit -m "acled: update stats from weekly data [$(date -u +'%Y-%m-%d')]"
+            git push
+            echo "Pushed ACLED-updated index.html"
+          else
+            echo "No changes to index.html"
+          fi
