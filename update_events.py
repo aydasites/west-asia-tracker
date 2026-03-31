@@ -33,9 +33,36 @@ RSS_FEEDS = [
     ("Iran International","https://www.iranintl.com/en/feed"),
     ("CENTCOM",           "https://www.centcom.mil/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=104&max=20"),
     ("i24 News",          "https://www.i24news.tv/en/feed"),
+    ("Critical Threats",  "https://www.criticalthreats.org/feed"),
+    ("IDF",               "https://www.idf.il/en/mini-sites/press-releases/rss"),
+    ("Defapress Iran",    "https://defapress.ir/en/rss"),
 ]
 
 LOOKBACK_HOURS = 48  # how far back to check for new articles (wide window; dedup prevents repeats)
+
+# ─── REJECT PATTERNS — filter out non-strike content ─────────────────────
+REJECT_RX = re.compile(
+    r'\b(opinion|editorial|analysis|briefing|newsletter|podcast|review|'
+    r'first thing|morning update|what we know|how the|why the|inside story|'
+    r'explainer|fact.?check|live blog|live updates|as it happened|'
+    r'stock market|economic|GDP|inflation|oil price|petrol|diesel|'
+    r'social media|information war|cyber|hacking|propaganda|'
+    r'protests? (?:in|across|against)|demonstrates?|rally|rallies|'
+    r'antisemit|arson|london|australia|india|indonesia|zelensky|ukraine|'
+    r'world war three|relevance|no longer relevant|perfect storm|'
+    r'press review|what it reveals|what it means|how likely|'
+    r'tuesday briefing|thursday briefing|daily briefing|first thing|'
+    r'ambulance|church|mosque closure|easter|passover|Eid|'
+    r'entertainment|shelter life|underground scene|normalcy)\b',
+    re.IGNORECASE
+)
+
+# ─── MUST-HAVE PATTERNS — article must describe an actual strike ─────────
+STRIKE_VERB_RX = re.compile(
+    r'\b(struck|hit|fired|launched|intercepted|downed|killed|wounded|injured|'
+    r'destroyed|damaged|targeted|bombarded|shelled|attacked|sunk|shot down)\b',
+    re.IGNORECASE
+)
 
 # ─── KEYWORD PATTERNS ───────────────────────────────────────────────────────
 STRIKE_RX = re.compile(
@@ -284,6 +311,12 @@ def fetch_feed(name, url, cutoff):
 
             combined = f"{title} {desc}"
             if STRIKE_RX.search(combined) and REGION_RX.search(combined):
+                # REJECT: opinion, analysis, newsletters, non-strike content
+                if REJECT_RX.search(title):
+                    continue
+                # REQUIRE: article must contain an actual strike verb (hit, fired, etc.)
+                if not STRIKE_VERB_RX.search(combined):
+                    continue
                 articles.append({
                     'title':    title,
                     'desc':     desc[:400],
@@ -325,6 +358,17 @@ def build_event(article, next_id):
     category, weapon_type = classify_weapon(text)
     outcome   = classify_outcome(text)
     quantity  = extract_quantity(text)
+    target_type = classify_target(article['title'] + ' ' + (article['desc'] or ''))
+
+    # Map target type → ic category for map icons
+    IC_MAP = {
+        'Commercial shipping': 'shipping', 'Energy infrastructure': 'energy',
+        'Airport / Military': 'airport', 'Nuclear facilities': 'nuclear',
+        'Naval — military': 'military', 'Diplomatic': 'diplomatic',
+        'Civilian infrastructure': 'residential', 'Air Defense': 'military',
+        'Military': 'military', 'Militia / armed group': 'military',
+    }
+    ic = IC_MAP.get(target_type, 'military')
 
     short_title = article['title'][:120]
 
@@ -340,7 +384,8 @@ def build_event(article, next_id):
         'fc':  origin_coords,
         'to':  target_name or target_country,
         'tc':  target_coords,
-        'tt':  classify_target(article['title'] + ' ' + (article['desc'] or '')),
+        'tt':  target_type,
+        'ic':  ic,
         's':   outcome,
         'n':   article['desc'] or short_title,
         'sr':  article['source'],
@@ -350,16 +395,63 @@ def build_event(article, next_id):
     }
 
 # ─── DEDUPLICATION ───────────────────────────────────────────────────────────
+STOP_WORDS = {'the','and','for','that','with','from','this','after','says','said',
+              'what','how','live','news','updates','war','iran','israel','israeli',
+              'iranian','middle','east','crisis','report','latest','happening','amid',
+              'trump','day','been','have','more','about','into','over','also','will',
+              'could','would','being','than','were','when','which','where','while',
+              'march','february','2026','attacks','attack','strikes','strike'}
+
+def normalize_words(title):
+    """Extract key content words, removing noise/stop words."""
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', title.lower())
+    return sorted(set(w for w in words if w not in STOP_WORDS))[:6]
+
 def fingerprint(title, date):
-    """Stable dedup key: date + top 8 meaningful words from title."""
-    words = sorted(set(re.findall(r'\b[a-zA-Z]{4,}\b', title.lower())))[:8]
+    """Stable dedup key: date + top 6 meaningful words from title."""
+    words = normalize_words(title)
     return f"{date}:{'|'.join(words)}"
 
+def title_similarity(t1, t2):
+    """Word overlap ratio between two titles (0-1)."""
+    w1 = set(normalize_words(t1))
+    w2 = set(normalize_words(t2))
+    if not w1 or not w2:
+        return 0
+    return len(w1 & w2) / max(len(w1), len(w2))
+
 def existing_fingerprints(html_content):
+    """Return (fingerprint_set, list_of_(date,title) tuples)."""
     fps = set()
+    titles = []
     for m in re.finditer(r"\{id:'[^']*',d:'(\d{4}-\d{2}-\d{2})',t:'([^']*)'", html_content):
         fps.add(fingerprint(m.group(2), m.group(1)))
-    return fps
+        titles.append((m.group(1), m.group(2)))
+    return fps, titles
+
+def is_duplicate_of_existing(new_title, new_date, existing_titles):
+    """Check if a new article covers the same incident as an existing event.
+    Uses word overlap — 40% match on same/adjacent day = duplicate."""
+    try:
+        nd = int(new_date.replace('-', ''))
+    except ValueError:
+        return False
+    for ex_date, ex_title in existing_titles:
+        try:
+            ed = int(ex_date.replace('-', ''))
+        except ValueError:
+            continue
+        if abs(nd - ed) <= 1:  # same day or adjacent
+            if title_similarity(new_title, ex_title) >= 0.4:
+                return True
+    return False
+
+def is_duplicate_of_batch(new_title, new_date, batch_titles):
+    """Check against other articles in the current batch (cross-outlet dedup)."""
+    for bt, bd in batch_titles:
+        if new_date == bd and title_similarity(new_title, bt) >= 0.35:
+            return True
+    return False
 
 def max_event_id(html_content):
     ids = re.findall(r"id:'(\d+)'", html_content)
@@ -376,7 +468,7 @@ def format_event_js(ev):
         f"   c:'{esc(ev['c'])}',ty:'{esc(ev['ty'])}',dt:'{esc(ev['dt'])}',q:'{esc(ev['q'])}',\n"
         f"   fr:'{esc(ev['fr'])}',fc:[{fc[0]},{fc[1]}],"
         f"to:'{esc(ev['to'])}',tc:[{tc[0]},{tc[1]}],\n"
-        f"   tt:'{esc(ev['tt'])}',s:'{esc(ev['s'])}',\n"
+        f"   tt:'{esc(ev['tt'])}',ic:'{esc(ev.get('ic','military'))}',s:'{esc(ev['s'])}',\n"
         f"   n:'{esc(ev['n'])}',\n"
         f"   sr:'{esc(ev['sr'])}',url:'{esc(ev.get('url',''))}',oc:'{esc(ev['oc'])}',tcc:'{esc(ev['tcc'])}'}},"
     )
@@ -406,7 +498,7 @@ def inject_events(html_content, new_events):
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 def main():
     print("=" * 50)
-    print("West-Asia Strike Tracker — Auto-Updater")
+    print("West-Asia Strike Tracker — Auto-Updater v2")
     print(f"Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("=" * 50)
 
@@ -416,7 +508,7 @@ def main():
     with open('index.html', 'r', encoding='utf-8') as f:
         html_content = f.read()
 
-    known_fps = existing_fingerprints(html_content)
+    known_fps, known_titles = existing_fingerprints(html_content)
     next_id   = max_event_id(html_content) + 1
     print(f"Loaded index.html — existing events: {next_id - 1}, fingerprints: {len(known_fps)}\n")
 
@@ -431,24 +523,40 @@ def main():
 
     print(f"\nTotal candidate articles: {len(all_articles)}\n")
 
-    # ── Build new events ──
+    # ── Build new events with 3-layer dedup ──
     new_events = []
     seen_fps   = set(known_fps)
+    batch_titles = []  # (title, date) pairs for cross-outlet dedup
 
     for article in all_articles:
-        fp = fingerprint(article['title'], article['date'])
+        title = article['title']
+        date  = article['date']
+
+        # Layer 1: exact fingerprint match
+        fp = fingerprint(title, date)
         if fp in seen_fps:
-            print(f"  [SKIP-DUP]  {article['title'][:70]}")
+            print(f"  [SKIP-FP]   {title[:70]}")
+            continue
+
+        # Layer 2: similarity match against existing curated events
+        if is_duplicate_of_existing(title, date, known_titles):
+            print(f"  [SKIP-SIM]  {title[:70]}")
+            continue
+
+        # Layer 3: cross-outlet dedup within this batch
+        if is_duplicate_of_batch(title, date, batch_titles):
+            print(f"  [SKIP-BATCH] {title[:70]}")
             continue
 
         event = build_event(article, next_id)
         if not event:
-            print(f"  [SKIP-GEO]  {article['title'][:70]}")
+            print(f"  [SKIP-GEO]  {title[:70]}")
             continue
 
-        print(f"  [ADD] id={next_id} {event['d']}  {event['oc']}→{event['tcc']}  {event['t'][:55]}")
+        print(f"  [ADD] id={next_id} {event['d']}  {event['oc']}->{event['tcc']}  {event['t'][:55]}")
         new_events.append(event)
         seen_fps.add(fp)
+        batch_titles.append((title, date))
         next_id += 1
 
     # ── Write ──
