@@ -42,9 +42,10 @@ LOOKBACK_HOURS = 48  # how far back to check for new articles (wide window; dedu
 
 # ─── REJECT PATTERNS — filter out non-strike content ─────────────────────
 REJECT_RX = re.compile(
-    r'\b(opinion|editorial|analysis|briefing|newsletter|podcast|review|'
+    r'\b(opinion|editorial|analysis|briefing|newsletter|podcast|review|column|'
     r'first thing|morning update|what we know|how the|why the|inside story|'
-    r'explainer|fact.?check|live blog|live updates|as it happened|'
+    r'explainer|fact.?check|live blog|live updates|as it happened|live:?\s|'
+    r'what.?s happening|key moments|day \d+ of|happening on day|'
     r'stock market|economic|GDP|inflation|oil price|petrol|diesel|'
     r'social media|information war|cyber|hacking|propaganda|'
     r'protests? (?:in|across|against)|demonstrates?|rally|rallies|'
@@ -53,11 +54,50 @@ REJECT_RX = re.compile(
     r'press review|what it reveals|what it means|how likely|'
     r'tuesday briefing|thursday briefing|daily briefing|first thing|'
     r'ambulance|church|mosque closure|easter|passover|Eid|'
-    r'entertainment|shelter life|underground scene|normalcy)\b',
+    r'entertainment|shelter life|underground scene|normalcy|'
+    r'warns?\b.*(?:deal|talks|threat)|threatens?\b.*(?:power plant|obliter)|'
+    r'vows?\b|rejects?\b.*(?:deal|plan|talks)|claims?\s|'
+    r'deal touted|potential deal|peace plan|end in sight|no end|'
+    r'spoke with|announces?\b.*(?:cooperation|defense deal)|'
+    r'preparing for|faces?\b.*(?:storm|crisis|test)|'
+    r'force majeure|gas storage|energy crisis|fuel|'
+    r'deploys?\b.*(?:troops|forces)|ground (?:invasion|operation|attack)|'
+    r'international law|rights group|violations?|'
+    r'aftermath|footage shows|drone footage|BBC visits|visit|'
+    r'how (?:close|will)|shape the war|enters? the (?:fighting|war)|'
+    r'lesson|strategy|reveals? about|the take|sponsored|'
+    r'world war|public support|wanes|resilience|'
+    r'bible|scripture|prayer|funeral|mourn|vigil|'
+    r'police officer|journalist.*(?:dog|donkey)|met police|'
+    r'terror law|dissent|sentences|'
+    r'no longer relevant|cannot afford|test the gulf|'
+    r'growth forecast|recession|markets|OECD|IMF)\b',
     re.IGNORECASE
 )
 
-# ─── MUST-HAVE PATTERNS — article must describe an actual strike ─────────
+# ─── TITLE MUST MATCH — title itself must describe a specific strike event ──
+# The headline must be about an actual strike/impact, not about diplomacy or threats.
+TITLE_STRIKE_RX = re.compile(
+    r'\b(struck|strikes?|hits?\b|fired|fires?\b|launch|intercept\w*|'
+    r'kills?\b|killed|wound\w*|injur\w*|destroy\w*|damag\w*|sinks?\b|sunk|'
+    r'attack[sed]*\b|bomb[sed]*\b|shell[sed]*\b|target[sed]*\b|'
+    r'shot down|downs?\b.*(?:drone|missile|aircraft)|'
+    r'missile (?:hit|strike|attack|impact|lands?)|'
+    r'drone (?:hit|strike|attack)|rocket (?:hit|strike|attack|kills?)|'
+    r'air\s?strike|blasts?\b|explo[sd])',
+    re.IGNORECASE
+)
+
+# ─── TITLE REJECT — even if it has strike words, reject threat/warning headlines ──
+TITLE_REJECT_RX = re.compile(
+    r'\b(warns?|threatens?|vows?|rejects?|claims?\s|stokes fears|'
+    r'not believed|could (?:hit|strike|target)|'
+    r'capability|preparing|if .{0,20} attacked|'
+    r'fears of|risk of|concerns? (?:about|over))\b',
+    re.IGNORECASE
+)
+
+# ─── MUST-HAVE — combined text must describe an actual strike action ─────────
 STRIKE_VERB_RX = re.compile(
     r'\b(struck|hit|fired|launched|intercepted|downed|killed|wounded|injured|'
     r'destroyed|damaged|targeted|bombarded|shelled|attacked|sunk|shot down)\b',
@@ -311,10 +351,16 @@ def fetch_feed(name, url, cutoff):
 
             combined = f"{title} {desc}"
             if STRIKE_RX.search(combined) and REGION_RX.search(combined):
-                # REJECT: opinion, analysis, newsletters, non-strike content
-                if REJECT_RX.search(title):
+                # REJECT: opinion, analysis, newsletters, non-strike content (check title AND desc)
+                if REJECT_RX.search(title) or REJECT_RX.search(desc):
                     continue
-                # REQUIRE: article must contain an actual strike verb (hit, fired, etc.)
+                # REQUIRE: title itself must describe an actual strike (not just mention the war)
+                if not TITLE_STRIKE_RX.search(title):
+                    continue
+                # REJECT: title is about threats/warnings, not actual strikes
+                if TITLE_REJECT_RX.search(title):
+                    continue
+                # REQUIRE: combined text must contain strike verbs
                 if not STRIKE_VERB_RX.search(combined):
                     continue
                 articles.append({
